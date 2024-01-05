@@ -15,6 +15,13 @@
 - 과제의 요구사항을 위해 프로젝트를 Gradle로 변경.
 - gradlew clean build 명령어를 사용해서 jar파일을 생성.
 
+## 도커이미지 빌드
+- 과제 요구사항에 따라 Docker가 아닌 Gradle로 도커 이미지를 빌드하기 위해 bmuschko Docker Gradle plugin을 사용.
+- build.gradle에 도커이미지 빌드를 위한 task들을 작성.
+- gradlew createDockerfile 명령어를 사용해서 이미지 빌드에 사용할 Dockerfile을 생성.
+- gradlew buildDockerImage 명령어를 사용해서 도커이미지를 생성.
+- gradlew pushDockerImage 명령어를 사용해서 DockerHub등 이미지 레지스트리에 도커이미지를 PUSH. 
+
 ## Kubernetes 배포
 1. 어플리케이션의 log는 host의 `/logs` 에 적재되도록 합니다.
 - 어플리케이션의 log를 host 노드의 /logs에 적재하기 위해 POD의 볼륨을 hostPath 방식으로 사용.
