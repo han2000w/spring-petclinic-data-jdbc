@@ -1,0 +1,99 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.0.5'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'com.bmuschko.docker-remote-api' version '7.2.0'
+}
+
+group = 'org.springframework.samples'
+version = '3.0.0.BUILD-SNAPSHOT'
+description = 'petclinic'
+
+java {
+  sourceCompatibility = '17'
+}
+
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://repo.spring.io/snapshot')
+    }
+
+    maven {
+        url = uri('https://repo.spring.io/milestone')
+    }
+
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2/')
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.0.5'
+    implementation 'org.springframework.boot:spring-boot-starter-validation:3.0.5'
+    implementation 'org.springframework.boot:spring-boot-starter-cache:3.0.5'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc:3.0.5'
+    implementation 'org.springframework.boot:spring-boot-starter-web:3.0.5'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf:3.0.5'
+    implementation 'org.flywaydb:flyway-core:9.5.1'
+    implementation 'org.flywaydb:flyway-mysql:9.5.1'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.5'
+    implementation 'org.webjars:jquery:2.2.4'
+    implementation 'org.webjars:jquery-ui:1.11.4'
+    implementation 'org.webjars:bootstrap:3.3.6'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools:3.0.5'
+    runtimeOnly 'com.mysql:mysql-connector-j:8.0.32'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.0.5'
+    testImplementation 'org.testcontainers:mysql:1.17.6'
+}
+
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+}
+
+// Docker build
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+
+docker {
+    url = 'unix:///var/run/docker.sock'
+    registryCredentials {
+        url = 'https://index.docker.io/v1/'
+        username = 'han2000w'
+        password = 'han2000w'
+    }
+}
+
+task createDockerfile (type: Dockerfile) {
+    destFile = project.file('build/docker/Dockerfile')
+    from 'openjdk:17-jdk-slim'
+    arg ('UID=999')
+    addFile ('build/libs/*SNAPSHOT.jar', 'app.jar')
+    runCommand ('useradd -u $UID han2000w')
+    runCommand ('mkdir /logs && chown han2000w.han2000w /logs')
+    exposePort 8080
+    user ('han2000w')
+    entryPoint ("sh", "-c", "java -Dlogging.file.name=/logs/spring-petclinic.log -Djava.security.egd=file:/dev/./urandom -server -jar app.jar")
+}
+
+task buildDockerImage(type: DockerBuildImage) {
+    dependsOn createDockerfile
+    dockerFile = project.file('build/docker/Dockerfile')
+    inputDir = project.projectDir
+    images.add('han2000w/spring-petclinic-data-jdbc:1')
+}
+
+task pushDockerImage(type: DockerPushImage) {
+    dependsOn buildDockerImage
+    images.add('han2000w/spring-petclinic-data-jdbc:1')
+}
+

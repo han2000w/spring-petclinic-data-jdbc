@@ -1,0 +1,82 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-petclinic-data-jdbc
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-petclinic-data-jdbc
+  template:
+    metadata:
+      labels:
+        app: spring-petclinic-data-jdbc
+    spec:
+      containers:
+      - name: spring-petclinic-data-jdbc
+        image: han2000w/spring-petclinic-data-jdbc:1
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: hostvolume
+          mountPath: /logs
+        readinessProbe:
+          httpGet:
+            path: /kubernetes/health
+            port: 8080
+          failureThreshold: 5
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+        - name: hostvolume
+          hostPath:
+            path: /logs
+            type: DirectoryOrCreate
+      terminationGracePeriodSeconds: 30
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: spring-petclinic-data-jdbc
+  name: spring-petclinic-data-jdbc-svc
+  namespace: default
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: spring-petclinic-data-jdbc
+  type: ClusterIP
+
+---
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spring-petclinic-data-jdbc-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: han2000w.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: spring-petclinic-data-jdbc-svc
+            port:
+              number: 8080
+
